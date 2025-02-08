@@ -1,3 +1,5 @@
+import pip
+pip.main(['install', 'python-telegram-bot'])
 from telegram import Update
 from telegram.ext import ApplicationBuilder, CommandHandler, ContextTypes
 import requests
