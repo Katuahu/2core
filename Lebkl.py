@@ -12,7 +12,7 @@ from config import BOT_TOKEN, ADMIN_IDS, OWNER_USERNAME
 USER_FILE = "users.json"
 KEY_FILE = "keys.json"
 
-DEFAULT_THREADS = 200
+DEFAULT_THREADS = 699
 users = {}
 keys = {}
 user_processes = {}
@@ -170,7 +170,7 @@ async def bgmi(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     port = context.args[1]
     duration = context.args[2]
 
-    command = ['./vof', target_ip, port, duration, str(DEFAULT_THREADS)]
+    command = ['./soulcracks', target_ip, port, duration, str(DEFAULT_THREADS)]
 
     process = subprocess.Popen(command)
     
