@@ -10,7 +10,7 @@ from threading import Lock
 bot = telebot.TeleBot('7623804344:AAEQXxUg9DAlaO-NI8xjcho7ml0NxAN0yA0')
 
 # Admin configuration
-admin_id = {"6284940908,-4690244799"}  # Your admin user ID
+admin_id = {"6284940908 , -4690244799"}  # Your admin user ID
 USER_FILE = "users1.txt"
 LOG_FILE = "command_logs.txt"
 FREE_USER_FILE = "free_users.txt"
