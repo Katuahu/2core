@@ -98,10 +98,6 @@ def add_user(message):
             return
 
         user_to_add = command[1].strip()
-        
-        if not user_to_add.isdigit():
-            bot.reply_to(message, "❌ User ID must contain only numbers!")
-            return
             
         with users_lock:
             if user_to_add in allowed_user_ids:
