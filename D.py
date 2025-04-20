@@ -7,7 +7,7 @@ import threading
 from threading import Lock
 
 # Initialize bot
-bot = telebot.TeleBot('7623804344:AAEQXxUg9DAlaO-NI8xjcho7ml0NxAN0yA0')
+bot = telebot.TeleBot('8126513158:AAH7IiIab6omvGjOemJjRya3SI8ytpbWXmM')
 
 # Admin configuration
 admin_id = {"6284940908"}  # Your admin user ID
